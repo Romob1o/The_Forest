@@ -1,25 +1,34 @@
 import pygame
 import os
 import sys
+import time
 
 pygame.init()
 TILE_SIZE = 64
-WIDTH = 1000
+WIDTH = 1250
 HEIGHT = 11 * TILE_SIZE
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("The Forest")
+lvl = 1
+player = None
+
+pygame.font.init()
 
 FPS = 60
-GRAVITY = 11
+GRAVITY = 12
 VELOCITY = 6
 V_JUMP = 20
 clock = pygame.time.Clock()
 
 ground_group = pygame.sprite.Group()
 stone_group = pygame.sprite.Group()
-water_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
+flag_group = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
+
+
+def font(size):
+    return pygame.font.Font('Data\TunnelFront.ttf', size)
 
 
 def load_image(name, colorkey=None):
@@ -49,15 +58,17 @@ def load_level(filename):
 
 
 def generate_level(level):
+    global player
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '@':
                 player = Player(x, y)
             elif level[y][x] == "x":
                 Stone(x, y)
+            elif level[y][x] == "f":
+                Flag(x, y)
             elif level[y][x] != ".":
                 Tile(level[y][x], x, y)
-    return player
 
 
 def terminate():
@@ -66,14 +77,67 @@ def terminate():
 
 
 def start_screen():
-    fon = pygame.transform.scale(load_image('background.png'), (WIDTH, HEIGHT))
+    fon = pygame.transform.scale(load_image('screensaver.png'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
+    text = font(25).render('press any button', True, (40, 40, 40))
+    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, 200))
+    text2 = font(100).render('The Forest', True, (0, 0, 0))
+    screen.blit(text2, (WIDTH // 2 - text2.get_width() // 2, 100))
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
             if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                return
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def level_completed():
+    all_sprites.draw(screen)
+    text = font(150).render('Level 1 completed', True, (0, 0, 0))
+    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - text.get_height() // 2))
+    text2 = font(25).render('press any button', True, (0, 0, 0))
+    screen.blit(text2, (WIDTH // 2 - text2.get_width() // 2, 410))
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                # for sprite in all_sprites:
+                #     sprite.kill()
+                # generate_level(load_level(f"{lvl}_lvl.txt"))
+                return
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def next_level():
+    global lvl
+    lvl += 1
+    for sprite in all_sprites:
+        sprite.kill()
+    generate_level(load_level(f"{lvl}_lvl.txt"))
+    return
+
+
+def game_over():
+    all_sprites.draw(screen)
+    text = font(150).render('Game Over', True, (0, 0, 0))
+    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - text.get_height() // 2))
+    text2 = font(25).render('press any button', True, (0, 0, 0))
+    screen.blit(text2, (WIDTH // 2 - text2.get_width() // 2, 410))
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                for sprite in all_sprites:
+                    sprite.kill()
+                generate_level(load_level(f"{lvl}_lvl.txt"))
                 return
         pygame.display.flip()
         clock.tick(FPS)
@@ -90,6 +154,15 @@ class Stone(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.bottom = (y + 1) * TILE_SIZE
         self.rect.left = x * TILE_SIZE + 10
+
+
+class Flag(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(flag_group, all_sprites)
+        self.image = pygame.transform.scale(load_image("flag.png"), (45, TILE_SIZE))
+        self.rect = self.image.get_rect()
+        self.rect.bottom = (y + 1) * TILE_SIZE
+        self.rect.left = x * TILE_SIZE + TILE_SIZE // 2 - self.rect.width // 2
 
 
 class Tile(pygame.sprite.Sprite):
@@ -158,13 +231,20 @@ class Player(pygame.sprite.Sprite):
         else:
             return False
 
-    # def check_on_finish(self):
+    def check_on_finish(self):
+        if pygame.sprite.spritecollideany(self, flag_group):
+            return True
+        else:
+            return False
 
     def update(self, buttons):
         if self.check_on_screen() or self.check_alive():
             self.kill()
-            exit()
-            # screen.blit(load_image("gameover.png"), (0, 0))
+            game_over()
+        if self.check_on_finish():
+            self.kill()
+            level_completed()
+            next_level()
 
         self.rect.bottom += 1
 
@@ -245,7 +325,7 @@ camera = Camera()
 start_screen()
 if __name__ == '__main__':
     running = True
-    player = generate_level(load_level('1st_lvl.txt'))
+    generate_level(load_level(f'1_lvl.txt'))
     while running:
         keys = {"space": False}
         for event in pygame.event.get():
@@ -263,6 +343,7 @@ if __name__ == '__main__':
         player_group.draw(screen)
         ground_group.draw(screen)
         stone_group.draw(screen)
+        flag_group.draw(screen)
         clock.tick(FPS)
         pygame.display.flip()
 
