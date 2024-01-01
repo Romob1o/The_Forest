@@ -18,6 +18,7 @@ FPS = 60
 GRAVITY = 12
 VELOCITY = 6
 V_JUMP = 20
+MAX_LVL = 2
 clock = pygame.time.Clock()
 
 ground_group = pygame.sprite.Group()
@@ -96,19 +97,22 @@ def start_screen():
 
 def level_completed():
     all_sprites.draw(screen)
-    text = font(150).render('Level 1 completed', True, (0, 0, 0))
+    text = font(150).render(f'Level {lvl} completed', True, (0, 0, 0))
     screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - text.get_height() // 2))
     text2 = font(25).render('press any button', True, (0, 0, 0))
     screen.blit(text2, (WIDTH // 2 - text2.get_width() // 2, 410))
+    text3 = font(50).render(f"Your time: {minutes}.{seconds}", True, (0, 0, 0))
+    screen.blit(text3, (WIDTH // 2 - text3.get_width() // 2, 500))
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
             if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                # for sprite in all_sprites:
-                #     sprite.kill()
-                # generate_level(load_level(f"{lvl}_lvl.txt"))
+                if lvl == MAX_LVL:
+                    finish_screen()
+                global start
+                start = time.time()
                 return
         pygame.display.flip()
         clock.tick(FPS)
@@ -138,7 +142,30 @@ def game_over():
                 for sprite in all_sprites:
                     sprite.kill()
                 generate_level(load_level(f"{lvl}_lvl.txt"))
+                global start
+                start = time.time()
                 return
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def finish_screen():
+    screen.blit(pygame.transform.scale(load_image("screensaver.png"), (WIDTH, HEIGHT)), (0, 0))
+    text = font(150).render('Forest is completed', True, (0, 0, 0))
+    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - text.get_height() // 2))
+    text2 = font(25).render('press any button', True, (0, 0, 0))
+    screen.blit(text2, (WIDTH // 2 - text2.get_width() // 2, 410))
+    text3 = font(150).render('Congratulations!!!', True, (0, 0, 0))
+    screen.blit(text3, (WIDTH // 2 - text3.get_width() // 2, 135))
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                for sprite in all_sprites:
+                    sprite.kill()
+                exit()
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -326,6 +353,7 @@ start_screen()
 if __name__ == '__main__':
     running = True
     generate_level(load_level(f'1_lvl.txt'))
+    start = time.time()
     while running:
         keys = {"space": False}
         for event in pygame.event.get():
@@ -336,6 +364,10 @@ if __name__ == '__main__':
                     keys["space"] = True
         screen.fill(BACKGROUND_COLOR)
         screen.blit(BACKGROUND, (0, 0))
+        now = time.time()
+        minutes = str(int((now - start) // 60))
+        seconds = u'%.2f' % ((now - start) % 60)
+        text = font(30).render(f"{minutes}.{seconds}", True, (0, 0, 0))
         player_group.update(keys)
         camera.update(player)
         for spr in all_sprites:
@@ -344,6 +376,7 @@ if __name__ == '__main__':
         ground_group.draw(screen)
         stone_group.draw(screen)
         flag_group.draw(screen)
+        screen.blit(text, (10, 0))
         clock.tick(FPS)
         pygame.display.flip()
 
