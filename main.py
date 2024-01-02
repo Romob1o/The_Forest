@@ -4,21 +4,29 @@ import sys
 import time
 
 pygame.init()
+pygame.mixer.init()
+pygame.font.init()
+
 TILE_SIZE = 64
 WIDTH = 1250
 HEIGHT = 11 * TILE_SIZE
+
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("The Forest")
 lvl = 1
 player = None
 
-pygame.font.init()
+flag_sound = pygame.mixer.Sound("data/flag.wav")
+jump_sound = pygame.mixer.Sound("data/jump.wav")
+death_sound = pygame.mixer.Sound("data/death.mp3")
+death_sound.set_volume(0.05)
 
 FPS = 60
 GRAVITY = 12
 VELOCITY = 6
 V_JUMP = 20
 MAX_LVL = 2
+
 clock = pygame.time.Clock()
 
 ground_group = pygame.sprite.Group()
@@ -78,6 +86,10 @@ def terminate():
 
 
 def start_screen():
+    pygame.mixer.music.load("data\start.wav")
+    pygame.mixer.music.set_volume(0.1)
+    pygame.mixer.music.play(-1)
+
     fon = pygame.transform.scale(load_image('screensaver.png'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
     text = font(25).render('press any button', True, (40, 40, 40))
@@ -90,12 +102,16 @@ def start_screen():
             if event.type == pygame.QUIT:
                 terminate()
             if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                pygame.mixer.music.load("data\main.wav")
+                pygame.mixer.music.set_volume(0.05)
+                pygame.mixer.music.play(-1)
                 return
         pygame.display.flip()
         clock.tick(FPS)
 
 
 def level_completed():
+    flag_sound.play()
     all_sprites.draw(screen)
     text = font(150).render(f'Level {lvl} completed', True, (0, 0, 0))
     screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - text.get_height() // 2))
@@ -128,6 +144,7 @@ def next_level():
 
 
 def game_over():
+    death_sound.play()
     all_sprites.draw(screen)
     text = font(150).render('Game Over', True, (0, 0, 0))
     screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - text.get_height() // 2))
@@ -150,6 +167,10 @@ def game_over():
 
 
 def finish_screen():
+    pygame.mixer.music.load("data\start.wav")
+    pygame.mixer.music.set_volume(0.1)
+    pygame.mixer.music.play(-1)
+
     screen.blit(pygame.transform.scale(load_image("screensaver.png"), (WIDTH, HEIGHT)), (0, 0))
     text = font(150).render('Forest is completed', True, (0, 0, 0))
     screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - text.get_height() // 2))
@@ -276,6 +297,8 @@ class Player(pygame.sprite.Sprite):
         self.rect.bottom += 1
 
         new_activity = self.get_status(buttons)
+        if "jump" in new_activity and "jump" not in self.activity:
+            jump_sound.play()
 
         self.rect.bottom -= 1
 
