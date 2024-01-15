@@ -186,7 +186,7 @@ def finish_screen():
             if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                 for sprite in all_sprites:
                     sprite.kill()
-                exit()
+                sys.exit()
         pygame.display.flip()
         clock.tick(FPS)
 
